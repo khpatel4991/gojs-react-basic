@@ -1,11 +1,30 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0px;
+  font-family: "Assistant", sans-serif;
+}
+
 label {
-  font: 300 1rem Roboto, helvetica, sans-serif;
   color: #212121; /* Grey 900 */
   display: block;
   padding: 2px;
 }
 
 p {
-  font: 300 1rem Roboto, helvetica, sans-serif;
   color: #212121; /* Grey 900 */
+  line-height: 1.625;
+}
+
+pre {
+  display: inline;
+  font-size: large;
+  line-height: 1.625;
+  background-color: lightseagreen;
+  cursor: pointer;
+  user-select: all;
+  margin-left: 0.25rem;
 }

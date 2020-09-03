@@ -31,8 +31,8 @@ export function nodeStyle() {
 
 export function textStyle() {
   return {
-    font: "bold 0.75rem Lato, Helvetica, Arial, sans-serif",
-    stroke: "#F8F8F8",
+    font: "bolder 1.5rem 'Assistant', sans-serif",
+    stroke: "#282c34",
   };
 }
 

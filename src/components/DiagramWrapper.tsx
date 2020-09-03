@@ -15,6 +15,7 @@ export enum DropType {
   Screen = "Screen",
   Branching = "Branching",
   Start = "Start",
+  End = "End",
 }
 
 interface DiagramProps {
@@ -25,6 +26,25 @@ interface DiagramProps {
   onDiagramEvent: (e: go.DiagramEvent) => void;
   onModelChange: (e: go.IncrementalData) => void;
 }
+
+const determineNodeType = (text: string): DropType => {
+  switch(text) {
+    case "area": return DropType.Branching
+    case "tools": return DropType.Start
+    case "happen": return DropType.End
+    default: return DropType.Screen
+  }
+}
+
+const determineNodeText = (text: string): string => {
+  switch(text) {
+    case "area": return "Branching";
+    case "tools": return "Start";
+    case "happen": return "End";
+    default: return "Display Screen";
+  }
+}
+
 
 export class DiagramWrapper extends React.Component<DiagramProps, {}> {
   /**
@@ -80,25 +100,17 @@ export class DiagramWrapper extends React.Component<DiagramProps, {}> {
 
   handleDrop = (event: DragEvent) => {
     event.preventDefault();
+    const text = event.dataTransfer?.getData("text/plain") ?? "";
+    const category = determineNodeType(text);
+    const nodeText = determineNodeText(text);
     const diagram = this.diagramElRef.current?.getDiagram();
-    const can = event.target;
-    const pixelratio = 2.5;
-
-    // if the target is not the canvas, we may have trouble, so just quit:
-    if (!(can instanceof HTMLCanvasElement)) return;
-
-    const bbox = can.getBoundingClientRect();
-    let bbw = bbox.width;
-    if (bbw === 0) bbw = 0.001;
-    let bbh = bbox.height;
-    if (bbh === 0) bbh = 0.001;
-    const mx = event.clientX - bbox.left * (can.width / pixelratio / bbw);
-    const my = event.clientY - bbox.top * (can.height / pixelratio / bbh);
+    const mx = 70
+    const my = 70
     const location = diagram?.transformViewToDoc(new go.Point(mx, my));
     diagram?.model.addNodeData({
       location,
-      text: "Display Screen",
-      category: DropType.Screen
+      text: nodeText,
+      category: category
     });
   };
 
@@ -111,7 +123,15 @@ export class DiagramWrapper extends React.Component<DiagramProps, {}> {
   private initDiagram(): go.Diagram {
     const $ = go.GraphObject.make;
     const diagram = $(go.Diagram, {
+      grid: $(go.Panel, "Grid",
+        $(go.Shape, "LineH", { stroke: "lightgray", strokeWidth: 1 }),
+        $(go.Shape, "LineH", { stroke: "gray", strokeWidth: 1, interval: 10 }),
+        $(go.Shape, "LineV", { stroke: "lightgray", strokeWidth: 1 }),
+        $(go.Shape, "LineV", { stroke: "gray", strokeWidth: 1, interval: 10 }),
+      ),
+      allowZoom: false,  // don't allow the user to change the diagram's scale
       "undoManager.isEnabled": true,
+      "toolManager.mouseWheelBehavior": go.ToolManager.WheelZoom,
       draggingTool: new GuidedDraggingTool(),
       "draggingTool.horizontalGuidelineColor": "blue",
       "draggingTool.verticalGuidelineColor": "blue",
@@ -119,6 +139,8 @@ export class DiagramWrapper extends React.Component<DiagramProps, {}> {
       "draggingTool.guidelineWidth": 1,
       model: $(go.GraphLinksModel, {
         linkKeyProperty: "key", // IMPORTANT! must be defined for merges and data sync when using GraphLinksModel
+        linkFromPortIdProperty: "fromPort",
+        linkToPortIdProperty: "toPort",
         // positive keys for nodes
         makeUniqueKeyFunction: (m: go.Model, data: any) => {
           let k = data.key || 1;
@@ -149,14 +171,14 @@ export class DiagramWrapper extends React.Component<DiagramProps, {}> {
           $(
             go.Shape,
             "Rectangle",
-            { fill: "#282c34", stroke: "#00A9C9", strokeWidth: 1.5 },
+            { fill: "#fff", stroke: "#00A9C9", strokeWidth: 1.5 },
             new go.Binding("figure", "figure")
           ),
           $(
             go.TextBlock,
             textStyle(),
             {
-              margin: 8,
+              margin: 12,
               maxSize: new go.Size(160, NaN),
               wrap: go.TextBlock.WrapFit,
               editable: false,
@@ -185,7 +207,7 @@ export class DiagramWrapper extends React.Component<DiagramProps, {}> {
           $(
             go.Shape,
             "Diamond",
-            { fill: "#282c34", stroke: "#00A9C9", strokeWidth: 2.5 },
+            { fill: "#fff", stroke: "#00A9C9", strokeWidth: 2.5 },
             new go.Binding("figure", "figure")
           ),
           $(
@@ -193,7 +215,7 @@ export class DiagramWrapper extends React.Component<DiagramProps, {}> {
             textStyle(),
             {
               margin: 8,
-              maxSize: new go.Size(160, NaN),
+              maxSize: new go.Size(160, 40),
               wrap: go.TextBlock.WrapFit,
               editable: false,
             },
@@ -211,7 +233,7 @@ export class DiagramWrapper extends React.Component<DiagramProps, {}> {
         $(go.Node, "Table", nodeStyle(),
           $(go.Panel, "Spot",
             $(go.Shape, "Circle",
-              { desiredSize: new go.Size(70, 70), fill: "#282c34", stroke: "#09d3ac", strokeWidth: 3.5 }),
+              { desiredSize: new go.Size(70, 70), fill: "#fff", stroke: "#09d3ac", strokeWidth: 3.5 }),
             $(go.TextBlock, "Start", textStyle(),
               new go.Binding("text"))
           ),
@@ -220,6 +242,20 @@ export class DiagramWrapper extends React.Component<DiagramProps, {}> {
           makePort("R", go.Spot.Right, go.Spot.Right, true, false),
           makePort("B", go.Spot.Bottom, go.Spot.Bottom, true, false)
         ));
+    
+        diagram.nodeTemplateMap.add(DropType.End,
+          $(go.Node, "Table", nodeStyle(),
+            $(go.Panel, "Spot",
+              $(go.Shape, "Circle",
+                { desiredSize: new go.Size(70, 70), fill: "#fff", stroke: "#d3091c", strokeWidth: 3.5 }),
+              $(go.TextBlock, "Start", textStyle(),
+                new go.Binding("text"))
+            ),
+            // three named ports, one on each side except the top, all output only:
+            makePort("L", go.Spot.Left, go.Spot.Left, false, true),
+            makePort("R", go.Spot.Right, go.Spot.Right, false, true),
+            makePort("T", go.Spot.Top, go.Spot.Top, false, true)
+          ));
 
 
     diagram.linkTemplate = $(

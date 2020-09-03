@@ -151,7 +151,7 @@ class App extends React.Component<{}, AppState> {
     const modifiedLinkData = obj.modifiedLinkData;
     const removedLinkKeys = obj.removedLinkKeys;
     const modifiedModelData = obj.modelData;
-
+  
     // maintain maps of modified data so insertions don't need slow lookups
     const modifiedNodeMap = new Map<go.Key, go.ObjectData>();
     const modifiedLinkMap = new Map<go.Key, go.ObjectData>();
@@ -195,13 +195,6 @@ class App extends React.Component<{}, AppState> {
         let larr = draft.linkDataArray;
         if (modifiedLinkData) {
           modifiedLinkData.forEach((ld: go.ObjectData, i: number) => {
-            debugger;
-            ld = {
-              ...ld,
-              key: ld.key,
-              fromPort: "B",
-              toPort: "T"
-            };
             modifiedLinkMap.set(ld.key, ld);
             const idx = this.mapLinkKeyIdx.get(ld.key);
             if (idx !== undefined && idx >= 0) {
@@ -238,10 +231,7 @@ class App extends React.Component<{}, AppState> {
           draft.modelData = modifiedModelData;
         }
         draft.skipsDiagramUpdate = true; // the GoJS model already knows about these updates
-      }),
-      () => {
-        console.log(this.state.linkDataArray)
-      }
+      })
     );
   }
 
@@ -282,7 +272,6 @@ class App extends React.Component<{}, AppState> {
    * @param e a change event from the checkbox
    */
   public handleRelinkChange(e: any) {
-    console.log('Relink', e)
     const target = e.target;
     const value = target.checked;
     this.setState({
@@ -305,25 +294,30 @@ class App extends React.Component<{}, AppState> {
 
     return (
       <div>
-        <p>
+        <div>
           Try moving around nodes, editing text, relinking, undoing (Ctrl-Z),
           etc. within the diagram and you'll notice the changes are reflected in
-          the inspector area. You'll also notice that changes made in the
+          the inspector <pre>area</pre>. You'll also notice that changes made in the
           inspector are reflected in the diagram. If you use the React dev
-          tools, you can inspect the React state and see it updated as changes
-          happen.
-        </p>
-        <p>
-          Check out the{" "}
-          <a
-            href="https://gojs.net/latest/intro/react.html"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Intro page on using GoJS with React
-          </a>{" "}
-          for more information.
-        </p>
+          <pre>tools</pre>, you can inspect the React state and see it updated as changes
+          <pre>happen</pre>.
+        </div>
+      <div className="buildbar">
+        {this.state.selectedData &&
+          <>
+            <label>
+              Allow Relinking?
+              <input
+                type="checkbox"
+                id="relink"
+                checked={this.state.modelData.canRelink}
+                onChange={this.handleRelinkChange}
+              />
+            </label>
+            {inspector}
+          </>
+        }
+        </div>
         <DiagramWrapper
           nodeDataArray={this.state.nodeDataArray}
           linkDataArray={this.state.linkDataArray}
@@ -332,16 +326,6 @@ class App extends React.Component<{}, AppState> {
           onDiagramEvent={this.handleDiagramEvent}
           onModelChange={this.handleModelChange}
         />
-        <label>
-          Allow Relinking?
-          <input
-            type="checkbox"
-            id="relink"
-            checked={this.state.modelData.canRelink}
-            onChange={this.handleRelinkChange}
-          />
-        </label>
-        {inspector}
       </div>
     );
   }
